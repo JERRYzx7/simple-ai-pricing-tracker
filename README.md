@@ -4,32 +4,26 @@ Application assessment for the Lenovo AI Application Development Intern position
 
 ## Quick start
 
-Python version and virtualenv are managed with [uv](https://docs.astral.sh/uv/) (`.python-version` pins 3.12):
+Requires Python 3.12 (any recent Python 3.10+ should also work).
 
-1. `uv venv --python 3.12 .venv` (downloads that Python version automatically on first run if it's not already installed locally)
-2. `uv pip install --python .venv/bin/python -r requirements.txt`
-3. Requires Google Chrome (the scraper drives a real Chrome window via Selenium — a browser window will pop up when it runs)
-4. `.venv/bin/python fetch_prices.py` to capture one real snapshot (reads `data/products.csv`, appends to `data/price_snapshots.csv`)
-5. `.venv/bin/python seed_history.py` to back-fill a few days of simulated history so the trend chart has something to show right away
-6. `cp .env.example .env`, get a free API key at https://aistudio.google.com/ and set `GOOGLE_API_KEY` (needed for the AI chat panel — without it the panel just shows a setup message, the rest of the app still works)
-7. `.venv/bin/streamlit run app.py` to open the interactive app
+```bash
+pip install -r requirements.txt
+cp .env.example .env   # optional — add a free Gemini API key to enable the AI chat panel
+streamlit run app.py
+```
 
-(You can also `source .venv/bin/activate` and use `python` / `streamlit` directly — same effect.)
+That's it — `data/price_snapshots.csv` already has real price history in it, so the tracker works right away. Note it's a Streamlit app, so it must be launched with `streamlit run app.py`, not `python app.py`.
 
-> Why uv: this machine is Apple Silicon, but the system's default `python3` is an
-> older x86_64 Python 3.9 running under Rosetta. A plain `pip install` of streamlit
-> pulls in pyarrow, which has no prebuilt wheel for that interpreter and fails
-> trying to compile from source. uv installs a native arm64 Python 3.12, where
-> every dependency has a prebuilt wheel — faster install, no build failures.
->
-> Don't have uv / don't want to install it? A plain `python3 -m venv .venv`,
-> `source .venv/bin/activate` (or `.venv\Scripts\activate` on Windows), then
-> `pip install -r requirements.txt` works fine on most machines — this project
-> only needed uv to work around this particular dev machine's Rosetta-emulated
-> Python. If that plain `pip install` also tries to compile pyarrow from source
-> and fails, that's the same symptom — installing uv (`curl -LsSf
-> https://astral.sh/uv/install.sh | sh`) and using steps 1-2 above is the
-> quickest fix.
+**Optional, not required to view the tracker:**
+- `python fetch_prices.py` pulls one fresh live price per product (requires Google Chrome — it drives a real, visible browser window via Selenium).
+- `python seed_history.py` regenerates the simulated bootstrap history.
+
+> If `pip install` fails trying to build `pyarrow` from source, your Python isn't
+> a standard native build for this OS/architecture (this happened on this dev
+> machine's Rosetta-emulated Python on Apple Silicon). Easiest fix: install a
+> native Python 3.10+, or use [uv](https://docs.astral.sh/uv/) instead —
+> `uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt`,
+> then run the app with `.venv/bin/streamlit run app.py`.
 
 ## Changing the tracked products
 
@@ -37,14 +31,19 @@ Edit `data/products.csv` — this is the static product catalog, maintained by h
 
 ## Automating price snapshots (scheduling)
 
-With crontab, twice a day (09:00 and 21:00):
+To collect prices automatically instead of running `fetch_prices.py` by hand:
 
-```
-0 9,21 * * * /absolute/path/to/lenovo/run_snapshot.sh
-```
+1. Make the wrapper executable once: `chmod +x run_snapshot.sh`
+2. Add a crontab entry with `crontab -e` (1-2 times a day is enough — more increases the chance of tripping Best Buy's rate limit):
+   ```
+   0 9,21 * * * /absolute/path/to/lenovo/run_snapshot.sh
+   ```
+   Use the actual absolute path to this project folder.
+3. Each run appends one row per product to `data/price_snapshots.csv` and writes its output to `logs/snapshot.log` (created automatically).
 
-Or with macOS launchd: wrap `run_snapshot.sh` in a plist and set `StartCalendarInterval` accordingly.
-Each run's log is written to `logs/snapshot.log`.
+`run_snapshot.sh` activates `.venv` itself if one exists at this path, otherwise it just uses whatever `python3` is on the system — no extra setup needed beyond step 1.
+
+Since the scraper needs a real, visible Chrome window (see Known limitations below), a scheduled run will briefly pop one open — this only works on a machine that stays logged in and awake, not a headless server. On macOS, `launchd` handles that more reliably than cron for GUI tasks: wrap the same command in a `~/Library/LaunchAgents/*.plist` with a `StartCalendarInterval` key instead.
 
 ## Project structure
 
