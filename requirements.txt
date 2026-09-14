@@ -1,0 +1,15 @@
+pandas
+streamlit
+plotly
+python-dotenv
+selenium
+google-genai  # AI chat panel — Google AI Studio (Gemini) free tier
+requests  # not used directly by our scripts, but streamlit's own bootstrap imports it at startup
+
+# Pinned: streamlit pulls in pyarrow, and on Python 3.9 / Intel macOS (i.e.
+# not using the uv-managed native arm64 Python 3.12 this project pins via
+# .python-version) the unpinned resolver can pick a pyarrow version with no
+# prebuilt wheel, forcing a slow from-source build that fails without a C++
+# toolchain. 16.1.0 has wheels for both, so pinning it avoids the problem
+# regardless of which interpreter actually runs this.
+pyarrow==16.1.0

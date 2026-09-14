@@ -1,0 +1,7 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+logs/
+Lenovo_AI_Application_Development_Intern_WD00102927_Assessment 1.pdf
