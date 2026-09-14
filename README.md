@@ -2,6 +2,8 @@
 
 Application assessment for the Lenovo AI Application Development Intern position (WD00102927).
 
+![Pricing trend chart](screenshots/trend-chart.png)
+
 ## Quick start
 
 Requires Python 3.12 (any recent Python 3.10+ should also work).
